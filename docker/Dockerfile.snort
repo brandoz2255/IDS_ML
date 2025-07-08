@@ -1,0 +1,17 @@
+FROM ubuntu:22.04
+
+RUN apt-get update && apt-get install -y     snort     libpcap-dev     build-essential     flex     bison     libdnet-dev     libdumbnet-dev     libluajit-5.1-dev     liblzma-dev     libssl-dev     zlib1g-dev     pkg-config     libhwloc-dev     libunwind-dev     libtool     autotools-dev     automake     git     wget     vim
+
+# Create Snort directories
+RUN mkdir -p /etc/snort /var/log/snort /usr/local/lib/snort_dynamicrules
+
+# Basic snort.conf (you'll want to customize this heavily)
+COPY snort.conf /etc/snort/snort.conf
+
+# Placeholder for Snort rules
+RUN echo 'alert icmp any any -> any any (msg:"ICMP Test"; sid:1000001; rev:1;)' > /etc/snort/rules/local.rules
+
+WORKDIR /snort
+
+CMD ["/bin/bash"]
+

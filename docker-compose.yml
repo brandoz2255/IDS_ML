@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+    volumes:
+      - ./app:/app
+    depends_on:
+      - db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql://user:pass@db:5432/snortdb
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    networks:
+      - backend_net
+
+  snort:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.snort
+    volumes:
+      - ./snort:/snort
+    networks:
+      - backend_net
+    cap_add:
+      - NET_ADMIN
+    command: ["/bin/bash", "-c", "snort -c /etc/snort/snort.conf -i eth0 -A full -l /var/log/snort & tail -f /var/log/snort/alert"]
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: snortdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    networks:
+      - backend_net
+
+  pgadmin:
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@ids.local
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8081:80"
+    networks:
+      - backend_net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend_net
+    command: redis-server --appendonly yes
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - backend
+    networks:
+      - backend_net
+
+networks:
+  backend_net:
+
+volumes:
+  pg_data:
+  redis_data:
